@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMS Warehouse Carousel System</title>
+    <title>3D Carousel Warehouse System</title>
     <style>
         body {
             margin: 0;
@@ -118,7 +118,7 @@
         </div>
         <div id="info">
             <div><strong>OMS Warehouse Carousel System</strong></div>
-            <div>Current Position: <span id="currentPos">1</span> / 6</div>
+            <div>Current Position: <span id="currentPos">1</span> / 50</div>
             <div>Mouse: Rotate view | Scroll: Zoom in/out</div>
         </div>
     </div>
@@ -130,14 +130,18 @@
                 this.scene = null;
                 this.camera = null;
                 this.renderer = null;
-                this.carousel = null;
+                this.platform = null;
+                this.conveyorBelt = null;
                 this.currentPosition = 0;
                 this.isRotating = false;
-                this.carriageCount = 6;
+                this.carriageCount = 50;
                 this.rowsPerCarriage = 8;
+                this.carriagePositions = [];
+                this.carriages = [];
+                this.carriageOrder = []; // Track which carriage is in which position
                 
                 this.init();
-                this.createCarousel();
+                this.createWarehouse();
                 this.setupControls();
                 this.animate();
             }
@@ -148,7 +152,7 @@
                 this.scene.background = new THREE.Color(0xf0f0f0);
                 
                 // Camera setup
-                this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
                 this.resetCameraPosition();
                 
                 // Renderer setup
@@ -163,22 +167,22 @@
                 this.scene.add(ambientLight);
                 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(15, 20, 15);
+                directionalLight.position.set(20, 25, 20);
                 directionalLight.castShadow = true;
                 directionalLight.shadow.mapSize.width = 2048;
                 directionalLight.shadow.mapSize.height = 2048;
-                directionalLight.shadow.camera.left = -20;
-                directionalLight.shadow.camera.right = 20;
-                directionalLight.shadow.camera.top = 20;
-                directionalLight.shadow.camera.bottom = -20;
+                directionalLight.shadow.camera.left = -40;
+                directionalLight.shadow.camera.right = 40;
+                directionalLight.shadow.camera.top = 30;
+                directionalLight.shadow.camera.bottom = -30;
                 this.scene.add(directionalLight);
                 
                 const fillLight1 = new THREE.DirectionalLight(0xffffff, 0.3);
-                fillLight1.position.set(-15, 15, -15);
+                fillLight1.position.set(-20, 15, -20);
                 this.scene.add(fillLight1);
                 
                 const fillLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
-                fillLight2.position.set(0, 10, -20);
+                fillLight2.position.set(0, 15, -30);
                 this.scene.add(fillLight2);
                 
                 this.setupMouseControls();
@@ -187,8 +191,8 @@
 
             resetCameraPosition() {
                 const aspect = window.innerWidth / window.innerHeight;
-                const distance = aspect < 1 ? 25 : 22;
-                const height = aspect < 1 ? 12 : 10;
+                const distance = aspect < 1 ? 45 : 35;
+                const height = aspect < 1 ? 20 : 15;
                 
                 this.camera.position.set(0, height, distance);
                 this.camera.lookAt(0, 4, 0);
@@ -231,10 +235,10 @@
                 this.renderer.domElement.addEventListener('wheel', (event) => {
                     const center = new THREE.Vector3(0, 4, 0);
                     const distance = this.camera.position.distanceTo(center);
-                    const minDistance = 15;
-                    const maxDistance = 40;
+                    const minDistance = 20;
+                    const maxDistance = 60;
                     
-                    const newDistance = Math.max(minDistance, Math.min(maxDistance, distance + event.deltaY * 0.03));
+                    const newDistance = Math.max(minDistance, Math.min(maxDistance, distance + event.deltaY * 0.05));
                     
                     const direction = this.camera.position.clone().sub(center).normalize();
                     this.camera.position.copy(center).add(direction.multiplyScalar(newDistance));
@@ -280,11 +284,9 @@
                 });
             }
 
-            createCarousel() {
-                this.carousel = new THREE.Group();
-                
-                //floor
-                const floorGeometry = new THREE.PlaneGeometry(50, 50);
+            createWarehouse() {
+                // Create floor
+                const floorGeometry = new THREE.PlaneGeometry(80, 60);
                 const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
                 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
                 floor.rotation.x = -Math.PI / 2;
@@ -292,39 +294,147 @@
                 floor.receiveShadow = true;
                 this.scene.add(floor);
                 
-                //base
-                const baseRadius = 6;
-                const baseHeight = 0.4;
+                // Create stationary platform
+                this.createStationaryPlatform();
                 
-                const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 32);
-                const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
-                const base = new THREE.Mesh(baseGeometry, baseMaterial);
-                base.position.y = 0;
-                base.receiveShadow = true;
-                base.castShadow = true;
-                this.carousel.add(base);
+                // Create conveyor belt
+                this.createConveyorBelt();
                 
-                this.createRectangularCarriages();
+                // Create carriages on the conveyor belt
+                this.createCarriagesOnConveyor();
+                
+                // Create front access indicator
                 this.createFrontGlass();
-                
-                this.scene.add(this.carousel);
             }
 
-            createRectangularCarriages() {
-                const radius = 5;
-                const angleStep = (Math.PI * 2) / this.carriageCount;
+            createStationaryPlatform() {
+                this.platform = new THREE.Group();
                 
+                // Calculate dimensions for the oval track
+                const carriageSpacing = 2.5;
+                const longSideLength = 24 * carriageSpacing; // 60 units for 24 carriages
+                const shortSideWidth = 6; // Width for short sides
+                
+                // Create rectangular platform - oriented correctly
+                const platformGeometry = new THREE.BoxGeometry(
+                    shortSideWidth * 2 + 8, // Width (short direction)
+                    0.4, 
+                    longSideLength + shortSideWidth * 2 // Length (long direction)
+                );
+                const platformMaterial = new THREE.MeshLambertMaterial({ color: 0x34495e });
+                const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+                platform.position.y = 0;
+                platform.receiveShadow = true;
+                platform.castShadow = true;
+                this.platform.add(platform);
+                
+                this.scene.add(this.platform);
+            }
+
+            createConveyorBelt() {
+                this.conveyorBelt = new THREE.Group();
+                
+                // Create oval conveyor belt path - oriented correctly
+                const carriageSpacing = 2.5;
+                const longSideLength = 24 * carriageSpacing; // 60 units
+                const shortSideRadius = 4; // Radius for the curved ends
+                
+                // Create conveyor belt segments
+                const beltMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
+                
+                // Long sides (left and right)
+                const longSegmentGeometry = new THREE.BoxGeometry(0.5, 0.1, longSideLength);
+                
+                // Left long segment
+                const leftSegment = new THREE.Mesh(longSegmentGeometry, beltMaterial);
+                leftSegment.position.set(-shortSideRadius, 0.25, 0);
+                this.conveyorBelt.add(leftSegment);
+                
+                // Right long segment
+                const rightSegment = new THREE.Mesh(longSegmentGeometry, beltMaterial);
+                rightSegment.position.set(shortSideRadius, 0.25, 0);
+                this.conveyorBelt.add(rightSegment);
+                
+                // Curved ends (front and back)
+                const curveGeometry = new THREE.CylinderGeometry(shortSideRadius, shortSideRadius, 0.1, 16, 1, false, 0, Math.PI);
+                
+                // Front curve
+                const frontCurve = new THREE.Mesh(curveGeometry, beltMaterial);
+                frontCurve.position.set(0, 0.25, longSideLength / 2);
+                frontCurve.rotation.x = 0;
+                this.conveyorBelt.add(frontCurve);
+                
+                // Back curve
+                const backCurve = new THREE.Mesh(curveGeometry, beltMaterial);
+                backCurve.position.set(0, 0.25, -longSideLength / 2);
+                backCurve.rotation.x = 0;
+                backCurve.rotation.y = Math.PI;
+                this.conveyorBelt.add(backCurve);
+                
+                this.scene.add(this.conveyorBelt);
+            }
+
+            createCarriagesOnConveyor() {
+                const carriageSpacing = 2.5;
+                const longSideLength = 24 * carriageSpacing; // 60 units
+                const shortSideRadius = 4;
+                
+                // Calculate oval path positions - corrected layout
+                this.carriagePositions = [];
+                this.carriages = [];
+                
+                // Front position (position 0 - on the short side)
+                this.carriagePositions.push({
+                    x: 0,
+                    z: longSideLength / 2,
+                    rotation: 0
+                });
+                
+                // Right side positions (1-24) - facing outward
+                for (let i = 1; i <= 24; i++) {
+                    const progress = (i - 0.5) / 24;
+                    this.carriagePositions.push({
+                        x: shortSideRadius,
+                        z: longSideLength / 2 - progress * longSideLength,
+                        rotation: Math.PI / 2 // Face outward (east)
+                    });
+                }
+                
+                // Back position (position 25 - on the short side)
+                this.carriagePositions.push({
+                    x: 0,
+                    z: -longSideLength / 2,
+                    rotation: Math.PI
+                });
+                
+                // Left side positions (26-49) - facing outward
+                for (let i = 1; i <= 24; i++) {
+                    const progress = (i - 0.5) / 24;
+                    this.carriagePositions.push({
+                        x: -shortSideRadius,
+                        z: -longSideLength / 2 + progress * longSideLength,
+                        rotation: -Math.PI / 2 // Face outward (west)
+                    });
+                }
+                
+                // Initialize carriage order tracking
+                this.carriageOrder = [];
                 for (let i = 0; i < this.carriageCount; i++) {
-                    const angle = i * angleStep;
+                    this.carriageOrder.push(i);
+                }
+                
+                // Create carriages
+                for (let i = 0; i < this.carriageCount; i++) {
                     const carriage = this.createCarriage(i);
+                    const pos = this.carriagePositions[i];
                     
-                    carriage.position.x = Math.sin(angle) * radius;
-                    carriage.position.z = Math.cos(angle) * radius;
-                    carriage.position.y = 0.2;
+                    carriage.position.x = pos.x;
+                    carriage.position.z = pos.z;
+                    carriage.position.y = 0.3;
+                    carriage.rotation.y = pos.rotation;
                     
-                    carriage.rotation.y = angle;
-                    
-                    this.carousel.add(carriage);
+                    this.carriages.push(carriage);
+                    this.scene.add(carriage);
                 }
             }
 
@@ -335,7 +445,7 @@
                 const carriageHeight = 8;
                 const carriageDepth = 2.5;
                 
-                //panel
+                // Back panel
                 const backGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.15);
                 const backMaterial = new THREE.MeshLambertMaterial({ color: 0xbdc3c7 });
                 const back = new THREE.Mesh(backGeometry, backMaterial);
@@ -344,7 +454,7 @@
                 back.castShadow = true;
                 carriage.add(back);
                 
-                //panels
+                // Side panels
                 const sideGeometry = new THREE.BoxGeometry(0.15, carriageHeight, carriageDepth);
                 const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
                 
@@ -365,7 +475,7 @@
                     carriage.add(shelf);
                 }
                 
-                //front panel
+                // Glass front panel
                 const glassGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.08);
                 const glassMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x87ceeb, 
@@ -378,7 +488,7 @@
                 glass.position.z = carriageDepth / 2 + 0.08;
                 carriage.add(glass);
                 
-                //structure
+                // Top structure
                 const topGeometry = new THREE.BoxGeometry(carriageWidth + 0.3, 0.2, carriageDepth + 0.3);
                 const topMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
                 const top = new THREE.Mesh(topGeometry, topMaterial);
@@ -386,58 +496,7 @@
                 top.castShadow = true;
                 carriage.add(top);
                 
-                this.createCarriageNumber(carriage, index + 1, carriageWidth, carriageHeight, carriageDepth);
-                
                 return carriage;
-            }
-
-            //labels for carriage
-            createCarriageNumber(carriage, number, width, height, depth) {
-                const plateGeometry = new THREE.BoxGeometry(0.8, 0.4, 0.1);
-                const plateMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
-                const plate = new THREE.Mesh(plateGeometry, plateMaterial);
-                plate.position.y = height + 0.35;
-                plate.position.z = depth / 2 + 0.15; 
-                carriage.add(plate);
-                
-                const numberGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.05);
-                const numberMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-                const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
-                numberMesh.position.y = height + 0.35;
-                numberMesh.position.z = depth / 2 + 0.2; 
-                carriage.add(numberMesh);
-                
-                this.createSimpleNumber(carriage, number, width, height, depth);
-            }
-
-            //for label
-            createSimpleNumber(carriage, number, width, height, depth) {
-                const textMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-                const segmentSize = 0.06;
-                
-                const baseX = 0;
-                const baseY = height + 0.35;
-                const baseZ = depth / 2 + 0.22;
-                
-                //grid based segment
-                const createSegment = (x, y) => {
-                    const segmentGeometry = new THREE.BoxGeometry(segmentSize, segmentSize, 0.02);
-                    const segment = new THREE.Mesh(segmentGeometry, textMaterial);
-                    segment.position.set(baseX + x * segmentSize, baseY + y * segmentSize, baseZ);
-                    carriage.add(segment);
-                };
-                
-                const numberPatterns = {
-                    1: [[0,2], [0,1], [0,0], [0,-1], [0,-2]],
-                    2: [[-1,2], [0,2], [1,2], [1,1], [0,0], [-1,0], [-1,-1], [0,-2], [1,-2]],
-                    3: [[-1,2], [0,2], [1,2], [1,1], [0,0], [1,0], [1,-1], [0,-2], [-1,-2]],
-                    4: [[-1,2], [-1,1], [-1,0], [0,0], [1,0], [1,2], [1,1], [1,-1], [1,-2]],
-                    5: [[-1,2], [0,2], [1,2], [-1,1], [-1,0], [0,0], [1,-1], [0,-2], [-1,-2]],
-                    6: [[-1,2], [0,2], [1,2], [-1,1], [-1,0], [0,0], [-1,-1], [1,-1], [0,-2], [-1,-2]]
-                };
-                
-                const pattern = numberPatterns[number] || [[0,0]];
-                pattern.forEach(([x, y]) => createSegment(x, y));
             }
 
             createShelf(rowIndex, width, depth) {
@@ -475,7 +534,7 @@
                 });
                 const frontArea = new THREE.Mesh(frontAreaGeometry, frontAreaMaterial);
                 frontArea.position.y = 9;
-                frontArea.position.z = 7;
+                frontArea.position.z = 32; // Position at the front short side
                 this.scene.add(frontArea);
             }
 
@@ -484,24 +543,39 @@
                 
                 this.isRotating = true;
                 
-                const angleStep = (Math.PI * 2) / this.carriageCount;
-                const targetRotation = this.carousel.rotation.y + (direction * angleStep);
-                
+                // Update the carriage order array
                 if (direction === 1) {
-                    // Moving clockwise (next)
-                    this.currentPosition = (this.currentPosition + 1) % this.carriageCount;
+                    // Move next - shift array to the right
+                    const lastCarriage = this.carriageOrder.pop();
+                    this.carriageOrder.unshift(lastCarriage);
                 } else {
-                    // Moving counter-clockwise (previous)
-                    this.currentPosition = (this.currentPosition - 1 + this.carriageCount) % this.carriageCount;
+                    // Move previous - shift array to the left
+                    const firstCarriage = this.carriageOrder.shift();
+                    this.carriageOrder.push(firstCarriage);
                 }
                 
-                const frontCarriage = (this.carriageCount - this.currentPosition) % this.carriageCount + 1;
-                document.getElementById('currentPos').textContent = frontCarriage;
+                // Update current position for display
+                this.currentPosition = (this.currentPosition + direction + this.carriageCount) % this.carriageCount;
+                
+                // Update display - show which carriage number is at the front
+                const frontCarriageNumber = this.carriageOrder[0] + 1;
+                document.getElementById('currentPos').textContent = frontCarriageNumber;
                 
                 document.getElementById('prevBtn').disabled = true;
                 document.getElementById('nextBtn').disabled = true;
                 
-                const startRotation = this.carousel.rotation.y;
+                // Store initial positions and rotations
+                const initialPositions = [];
+                const initialRotations = [];
+                
+                this.carriages.forEach((carriage, index) => {
+                    initialPositions.push({
+                        x: carriage.position.x,
+                        z: carriage.position.z
+                    });
+                    initialRotations.push(carriage.rotation.y);
+                });
+                
                 const startTime = Date.now();
                 const duration = 1000;
                 
@@ -513,14 +587,43 @@
                         ? 2 * progress * progress 
                         : -1 + (4 - 2 * progress) * progress;
                     
-                    this.carousel.rotation.y = startRotation + (targetRotation - startRotation) * easeInOut;
+                    // Move each carriage to its new position based on carriageOrder
+                    this.carriages.forEach((carriage, carriageIndex) => {
+                        // Find where this carriage should be in the order
+                        const positionIndex = this.carriageOrder.indexOf(carriageIndex);
+                        
+                        const initial = initialPositions[carriageIndex];
+                        const target = this.carriagePositions[positionIndex];
+                        const initialRot = initialRotations[carriageIndex];
+                        
+                        // Interpolate position
+                        carriage.position.x = initial.x + (target.x - initial.x) * easeInOut;
+                        carriage.position.z = initial.z + (target.z - initial.z) * easeInOut;
+                        
+                        // Interpolate rotation
+                        let targetRot = target.rotation;
+                        let rotDiff = targetRot - initialRot;
+                        
+                        // Handle rotation wrapping
+                        if (rotDiff > Math.PI) rotDiff -= 2 * Math.PI;
+                        if (rotDiff < -Math.PI) rotDiff += 2 * Math.PI;
+                        
+                        carriage.rotation.y = initialRot + rotDiff * easeInOut;
+                    });
                     
                     if (progress < 1) {
                         requestAnimationFrame(animate);
                     } else {
-                        this.carousel.rotation.y = targetRotation;
-                        this.isRotating = false;
+                        // Ensure final positions are exact
+                        this.carriages.forEach((carriage, carriageIndex) => {
+                            const positionIndex = this.carriageOrder.indexOf(carriageIndex);
+                            const target = this.carriagePositions[positionIndex];
+                            carriage.position.x = target.x;
+                            carriage.position.z = target.z;
+                            carriage.rotation.y = target.rotation;
+                        });
                         
+                        this.isRotating = false;
                         document.getElementById('prevBtn').disabled = false;
                         document.getElementById('nextBtn').disabled = false;
                     }
@@ -531,11 +634,11 @@
 
             setupControls() {
                 document.getElementById('prevBtn').addEventListener('click', () => {
-                    this.rotateCarousel(1);
+                    this.rotateCarousel(-1);
                 });
                 
                 document.getElementById('nextBtn').addEventListener('click', () => {
-                    this.rotateCarousel(-1);
+                    this.rotateCarousel(1);
                 });
                 
                 document.getElementById('resetBtn').addEventListener('click', () => {
