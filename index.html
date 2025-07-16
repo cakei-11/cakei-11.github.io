@@ -60,7 +60,8 @@
         #info {
             position: absolute;
             bottom: 10px;
-            right: center;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 100;
             background: rgba(0, 0, 0, 0.7);
             color: white;
@@ -69,6 +70,7 @@
             font-size: 14px;
             backdrop-filter: blur(10px);
         }
+
         
         .front-indicator {
             position: absolute;
@@ -108,9 +110,6 @@
             <div>Current Position: <span id="currentPos">1</span> / 6</div>
             <div>Mouse: Rotate view</div>
             <div>Scroll: Zoom in/out</div>
-        </div>
-        <div class="front-indicator">
-            FRONT ACCESS - Current Carriage: <span id="currentPos">1</span>
         </div>
     </div>
 
