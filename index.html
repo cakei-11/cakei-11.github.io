@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Carousel Warehouse System</title>
+    <title>OMS Warehouse Carousel System</title>
     <style>
         body {
             margin: 0;
@@ -283,7 +283,7 @@
             createCarousel() {
                 this.carousel = new THREE.Group();
                 
-                // Create floor
+                //floor
                 const floorGeometry = new THREE.PlaneGeometry(50, 50);
                 const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
                 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -292,7 +292,7 @@
                 floor.receiveShadow = true;
                 this.scene.add(floor);
                 
-                // Create base
+                //base
                 const baseRadius = 6;
                 const baseHeight = 0.4;
                 
@@ -335,7 +335,7 @@
                 const carriageHeight = 8;
                 const carriageDepth = 2.5;
                 
-                // Back panel
+                //panel
                 const backGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.15);
                 const backMaterial = new THREE.MeshLambertMaterial({ color: 0xbdc3c7 });
                 const back = new THREE.Mesh(backGeometry, backMaterial);
@@ -344,7 +344,7 @@
                 back.castShadow = true;
                 carriage.add(back);
                 
-                // Side panels
+                //panels
                 const sideGeometry = new THREE.BoxGeometry(0.15, carriageHeight, carriageDepth);
                 const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
                 
@@ -365,7 +365,7 @@
                     carriage.add(shelf);
                 }
                 
-                // Glass front panel
+                //front panel
                 const glassGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.08);
                 const glassMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x87ceeb, 
@@ -378,7 +378,7 @@
                 glass.position.z = carriageDepth / 2 + 0.08;
                 carriage.add(glass);
                 
-                // Top structure
+                //structure
                 const topGeometry = new THREE.BoxGeometry(carriageWidth + 0.3, 0.2, carriageDepth + 0.3);
                 const topMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
                 const top = new THREE.Mesh(topGeometry, topMaterial);
@@ -386,44 +386,40 @@
                 top.castShadow = true;
                 carriage.add(top);
                 
-                // Create better carriage numbering
                 this.createCarriageNumber(carriage, index + 1, carriageWidth, carriageHeight, carriageDepth);
                 
                 return carriage;
             }
 
+            //labels for carriage
             createCarriageNumber(carriage, number, width, height, depth) {
-                // Create number plate that sticks out from the carriage
                 const plateGeometry = new THREE.BoxGeometry(0.8, 0.4, 0.1);
                 const plateMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
                 const plate = new THREE.Mesh(plateGeometry, plateMaterial);
                 plate.position.y = height + 0.35;
-                plate.position.z = depth / 2 + 0.15; // Further out from carriage
+                plate.position.z = depth / 2 + 0.15; 
                 carriage.add(plate);
                 
-                // Create simple, clear number text
                 const numberGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.05);
                 const numberMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
                 const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
                 numberMesh.position.y = height + 0.35;
-                numberMesh.position.z = depth / 2 + 0.2; // Even further out
+                numberMesh.position.z = depth / 2 + 0.2; 
                 carriage.add(numberMesh);
                 
-                // Add the actual number using a simple text approach
                 this.createSimpleNumber(carriage, number, width, height, depth);
             }
 
+            //for label
             createSimpleNumber(carriage, number, width, height, depth) {
-                // Create a simple number using basic shapes - much cleaner approach
                 const textMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
                 const segmentSize = 0.06;
                 
-                // Position for the number (well in front of the carriage)
                 const baseX = 0;
                 const baseY = height + 0.35;
                 const baseZ = depth / 2 + 0.22;
                 
-                // Create number segments based on a simple grid
+                //grid based segment
                 const createSegment = (x, y) => {
                     const segmentGeometry = new THREE.BoxGeometry(segmentSize, segmentSize, 0.02);
                     const segment = new THREE.Mesh(segmentGeometry, textMaterial);
@@ -431,7 +427,6 @@
                     carriage.add(segment);
                 };
                 
-                // Simple number patterns using a 3x5 grid
                 const numberPatterns = {
                     1: [[0,2], [0,1], [0,0], [0,-1], [0,-2]],
                     2: [[-1,2], [0,2], [1,2], [1,1], [0,0], [-1,0], [-1,-1], [0,-2], [1,-2]],
@@ -472,7 +467,6 @@
             }
 
             createFrontGlass() {
-                // Shorter front access indicator - proper length
                 const frontAreaGeometry = new THREE.BoxGeometry(6, 0.3, 0.2);
                 const frontAreaMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x5dade2,
@@ -493,7 +487,6 @@
                 const angleStep = (Math.PI * 2) / this.carriageCount;
                 const targetRotation = this.carousel.rotation.y + (direction * angleStep);
                 
-                // Fix the position tracking - direction affects how we calculate the new position
                 if (direction === 1) {
                     // Moving clockwise (next)
                     this.currentPosition = (this.currentPosition + 1) % this.carriageCount;
@@ -502,7 +495,6 @@
                     this.currentPosition = (this.currentPosition - 1 + this.carriageCount) % this.carriageCount;
                 }
                 
-                // Update display to show which carriage is at the front (1-indexed)
                 const frontCarriage = (this.carriageCount - this.currentPosition) % this.carriageCount + 1;
                 document.getElementById('currentPos').textContent = frontCarriage;
                 
