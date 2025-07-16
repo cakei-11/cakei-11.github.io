@@ -21,7 +21,7 @@
         
         #controls {
             position: absolute;
-            top: 5%;
+            top: 3%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
@@ -32,21 +32,21 @@
 
         
         .btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             background: linear-gradient(135deg, #3498db, #2980b9);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
         }
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
         
         .btn:active {
@@ -61,31 +61,17 @@
         
         #info {
             position: absolute;
-            bottom: 5%;
+            bottom: 3%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
             backdrop-filter: blur(10px);
-        }
-
-        
-        .front-indicator {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-            background: rgba(52, 152, 219, 0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            backdrop-filter: blur(10px);
+            text-align: center;
         }
         
         #loading {
@@ -97,6 +83,29 @@
             font-size: 18px;
             z-index: 200;
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            #info {
+                font-size: 12px;
+                padding: 10px 16px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            #controls {
+                top: 2%;
+            }
+            
+            #info {
+                bottom: 2%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -106,13 +115,11 @@
             <button class="btn" id="prevBtn">← Previous</button>
             <button class="btn" id="resetBtn">Reset View</button>
             <button class="btn" id="nextBtn">Next →</button>
-            
         </div>
         <div id="info">
-            <div><strong>Carousel Warehouse System</strong></div>
+            <div><strong>OMS Warehouse Carousel System</strong></div>
             <div>Current Position: <span id="currentPos">1</span> / 6</div>
-            <div>Mouse: Rotate view</div>
-            <div>Scroll: Zoom in/out</div>
+            <div>Mouse: Rotate view | Scroll: Zoom in/out</div>
         </div>
     </div>
 
@@ -127,7 +134,7 @@
                 this.currentPosition = 0;
                 this.isRotating = false;
                 this.carriageCount = 6;
-                this.rowsPerCarriage = 5;
+                this.rowsPerCarriage = 8;
                 
                 this.init();
                 this.createCarousel();
@@ -138,12 +145,11 @@
             init() {
                 // Scene setup
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0xf5f5f5);
+                this.scene.background = new THREE.Color(0xf0f0f0);
                 
-                // Camera setup
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.camera.position.set(0, 8, 20);
-                this.camera.lookAt(0, 0, 0);
+                // Camera setup - much more zoomed out view
+                this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.resetCameraPosition();
                 
                 // Renderer setup
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -152,12 +158,12 @@
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 document.getElementById('container').appendChild(this.renderer.domElement);
                 
-                // Lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                // Enhanced lighting for better visibility
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
                 this.scene.add(ambientLight);
                 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(0, 20, 15);
+                directionalLight.position.set(15, 20, 15);
                 directionalLight.castShadow = true;
                 directionalLight.shadow.mapSize.width = 2048;
                 directionalLight.shadow.mapSize.height = 2048;
@@ -167,16 +173,30 @@
                 directionalLight.shadow.camera.bottom = -20;
                 this.scene.add(directionalLight);
                 
-                // Additional lights for better illumination
-                const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-                fillLight.position.set(0, 10, -15);
-                this.scene.add(fillLight);
+                // Fill lights for better illumination
+                const fillLight1 = new THREE.DirectionalLight(0xffffff, 0.3);
+                fillLight1.position.set(-15, 15, -15);
+                this.scene.add(fillLight1);
+                
+                const fillLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+                fillLight2.position.set(0, 10, -20);
+                this.scene.add(fillLight2);
                 
                 // Mouse controls
                 this.setupMouseControls();
                 
                 // Hide loading
                 document.getElementById('loading').style.display = 'none';
+            }
+
+            resetCameraPosition() {
+                // Much more zoomed out view like in the reference image
+                const aspect = window.innerWidth / window.innerHeight;
+                const distance = aspect < 1 ? 25 : 22; // Further back
+                const height = aspect < 1 ? 12 : 10; // Higher up
+                
+                this.camera.position.set(0, height, distance);
+                this.camera.lookAt(0, 4, 0); // Look at center of carousel
             }
 
             setupMouseControls() {
@@ -198,13 +218,13 @@
                     
                     // Rotate camera around the carousel
                     const spherical = new THREE.Spherical();
-                    spherical.setFromVector3(this.camera.position);
+                    spherical.setFromVector3(this.camera.position.clone().sub(new THREE.Vector3(0, 4, 0)));
                     spherical.theta -= deltaX * 0.01;
                     spherical.phi += deltaY * 0.01;
                     spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
                     
-                    this.camera.position.setFromSpherical(spherical);
-                    this.camera.lookAt(0, 0, 0);
+                    this.camera.position.setFromSpherical(spherical).add(new THREE.Vector3(0, 4, 0));
+                    this.camera.lookAt(0, 4, 0);
                     
                     mouseX = event.clientX;
                     mouseY = event.clientY;
@@ -215,53 +235,93 @@
                 });
 
                 this.renderer.domElement.addEventListener('wheel', (event) => {
-                    const distance = this.camera.position.distanceTo(new THREE.Vector3(0, 0, 0));
-                    const newDistance = distance + event.deltaY * 0.01;
+                    const center = new THREE.Vector3(0, 4, 0);
+                    const distance = this.camera.position.distanceTo(center);
+                    const minDistance = 15;
+                    const maxDistance = 40;
                     
-                    if (newDistance > 8 && newDistance < 50) {
-                        this.camera.position.normalize().multiplyScalar(newDistance);
+                    const newDistance = Math.max(minDistance, Math.min(maxDistance, distance + event.deltaY * 0.03));
+                    
+                    const direction = this.camera.position.clone().sub(center).normalize();
+                    this.camera.position.copy(center).add(direction.multiplyScalar(newDistance));
+                });
+
+                // Touch controls for mobile
+                this.setupTouchControls();
+            }
+
+            setupTouchControls() {
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let isTouching = false;
+
+                this.renderer.domElement.addEventListener('touchstart', (event) => {
+                    if (event.touches.length === 1) {
+                        isTouching = true;
+                        touchStartX = event.touches[0].clientX;
+                        touchStartY = event.touches[0].clientY;
                     }
+                });
+
+                this.renderer.domElement.addEventListener('touchmove', (event) => {
+                    if (isTouching && event.touches.length === 1) {
+                        const deltaX = event.touches[0].clientX - touchStartX;
+                        const deltaY = event.touches[0].clientY - touchStartY;
+                        
+                        const spherical = new THREE.Spherical();
+                        spherical.setFromVector3(this.camera.position.clone().sub(new THREE.Vector3(0, 4, 0)));
+                        spherical.theta -= deltaX * 0.01;
+                        spherical.phi += deltaY * 0.01;
+                        spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                        
+                        this.camera.position.setFromSpherical(spherical).add(new THREE.Vector3(0, 4, 0));
+                        this.camera.lookAt(0, 4, 0);
+                        
+                        touchStartX = event.touches[0].clientX;
+                        touchStartY = event.touches[0].clientY;
+                    }
+                });
+
+                this.renderer.domElement.addEventListener('touchend', () => {
+                    isTouching = false;
                 });
             }
 
             createCarousel() {
                 this.carousel = new THREE.Group();
                 
-                // Create circular base structure for single carousel
+                // Create floor/ground - larger to match the reference
+                const floorGeometry = new THREE.PlaneGeometry(50, 50);
+                const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -0.5;
+                floor.receiveShadow = true;
+                this.scene.add(floor);
+                
+                // Create circular base structure
                 const baseRadius = 6;
-                const baseHeight = 0.5;
+                const baseHeight = 0.4;
                 
-                // Main base platform
+                // Main base platform - darker to match reference
                 const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 32);
-                const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x34495e });
+                const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
                 const base = new THREE.Mesh(baseGeometry, baseMaterial);
-                base.position.y = -baseHeight / 2;
+                base.position.y = 0;
                 base.receiveShadow = true;
+                base.castShadow = true;
                 this.carousel.add(base);
-                
-                // Create structural frame
-                const frameGeometry = new THREE.CylinderGeometry(baseRadius + 0.5, baseRadius + 0.5, 8, 32);
-                const frameMaterial = new THREE.MeshLambertMaterial({ 
-                    color: 0x2c3e50,
-                    transparent: true,
-                    opacity: 0.1
-                });
-                const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-                frame.position.y = 4;
-                this.carousel.add(frame);
                 
                 // Create carriages arranged in a circle
                 this.createRectangularCarriages();
                 
-                // Create front glass indicator
+                // Create front access indicator
                 this.createFrontGlass();
                 
                 this.scene.add(this.carousel);
             }
 
             createRectangularCarriages() {
-                // Single carousel with 6 carriages arranged in a hexagonal pattern
-                // Only 1 carriage at the front (position 0)
                 const radius = 5;
                 const angleStep = (Math.PI * 2) / this.carriageCount;
                 
@@ -272,8 +332,9 @@
                     // Position carriages in a circle
                     carriage.position.x = Math.sin(angle) * radius;
                     carriage.position.z = Math.cos(angle) * radius;
+                    carriage.position.y = 0.2; // Just above the base
                     
-                    // Rotate to face center, with position 0 facing outward (front)
+                    // Rotate to face center
                     carriage.rotation.y = angle;
                     
                     this.carousel.add(carriage);
@@ -283,14 +344,14 @@
             createCarriage(index) {
                 const carriage = new THREE.Group();
                 
-                // Main carriage structure - taller and more industrial
-                const carriageWidth = 3;
-                const carriageHeight = 7;
-                const carriageDepth = 3;
+                // Main carriage structure
+                const carriageWidth = 2.5;
+                const carriageHeight = 8;
+                const carriageDepth = 2.5;
                 
                 // Back panel
-                const backGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.2);
-                const backMaterial = new THREE.MeshLambertMaterial({ color: 0xecf0f1 });
+                const backGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.15);
+                const backMaterial = new THREE.MeshLambertMaterial({ color: 0xbdc3c7 });
                 const back = new THREE.Mesh(backGeometry, backMaterial);
                 back.position.y = carriageHeight / 2;
                 back.position.z = -carriageDepth / 2;
@@ -298,8 +359,8 @@
                 carriage.add(back);
                 
                 // Side panels
-                const sideGeometry = new THREE.BoxGeometry(0.2, carriageHeight, carriageDepth);
-                const sideMaterial = new THREE.MeshLambertMaterial({ color: 0xbdc3c7 });
+                const sideGeometry = new THREE.BoxGeometry(0.15, carriageHeight, carriageDepth);
+                const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
                 
                 const leftSide = new THREE.Mesh(sideGeometry, sideMaterial);
                 leftSide.position.set(-carriageWidth / 2, carriageHeight / 2, 0);
@@ -311,61 +372,113 @@
                 rightSide.castShadow = true;
                 carriage.add(rightSide);
                 
-                // Create storage shelves
+                // Create 8 storage shelves
                 for (let row = 0; row < this.rowsPerCarriage; row++) {
                     const shelf = this.createShelf(row, carriageWidth, carriageDepth);
-                    shelf.position.y = 0.5 + (row * 1.3);
+                    shelf.position.y = 0.4 + (row * 0.95);
                     carriage.add(shelf);
                 }
                 
-                // Glass front panel - more prominent and realistic
-                const glassGeometry = new THREE.BoxGeometry(carriageWidth + 0.1, carriageHeight + 0.1, 0.1);
+                // Glass front panel
+                const glassGeometry = new THREE.BoxGeometry(carriageWidth, carriageHeight, 0.08);
                 const glassMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x87ceeb, 
                     transparent: true, 
-                    opacity: 0.2,
+                    opacity: 0.15,
                     side: THREE.DoubleSide
                 });
                 const glass = new THREE.Mesh(glassGeometry, glassMaterial);
                 glass.position.y = carriageHeight / 2;
-                glass.position.z = carriageDepth / 2 + 0.1;
+                glass.position.z = carriageDepth / 2 + 0.08;
                 carriage.add(glass);
                 
-                // Glass frame
-                const frameGeometry = new THREE.BoxGeometry(carriageWidth + 0.2, carriageHeight + 0.2, 0.2);
-                const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x34495e });
-                const glassFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-                glassFrame.position.y = carriageHeight / 2;
-                glassFrame.position.z = carriageDepth / 2 + 0.15;
-                carriage.add(glassFrame);
-                
-                // Add the glass back in front of the frame
-                glass.position.z = carriageDepth / 2 + 0.2;
-                
                 // Top structure
-                const topGeometry = new THREE.BoxGeometry(carriageWidth + 0.5, 0.3, carriageDepth + 0.5);
+                const topGeometry = new THREE.BoxGeometry(carriageWidth + 0.3, 0.2, carriageDepth + 0.3);
                 const topMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
                 const top = new THREE.Mesh(topGeometry, topMaterial);
-                top.position.y = carriageHeight + 0.15;
+                top.position.y = carriageHeight + 0.1;
                 top.castShadow = true;
                 carriage.add(top);
                 
-                // Carriage number plate
-                const numberGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.1);
-                const numberMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
-                const numberPlate = new THREE.Mesh(numberGeometry, numberMaterial);
-                numberPlate.position.y = carriageHeight + 0.5;
-                numberPlate.position.z = carriageDepth / 2 + 0.3;
-                carriage.add(numberPlate);
+                // Create proper carriage numbering
+                this.createCarriageNumber(carriage, index + 1, carriageWidth, carriageHeight, carriageDepth);
                 
                 return carriage;
+            }
+
+            createCarriageNumber(carriage, number, width, height, depth) {
+                // Red number plate background
+                const plateGeometry = new THREE.BoxGeometry(1.0, 0.5, 0.05);
+                const plateMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
+                const plate = new THREE.Mesh(plateGeometry, plateMaterial);
+                plate.position.y = height + 0.3;
+                plate.position.z = depth / 2 + 0.1;
+                carriage.add(plate);
+                
+                // White number display
+                this.createNumberDisplay(carriage, number, width, height, depth);
+            }
+
+            createNumberDisplay(carriage, number, width, height, depth) {
+                const numberMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                
+                // Create number shapes using simple geometry segments
+                const createSegment = (x, y, w, h) => {
+                    const segmentGeometry = new THREE.BoxGeometry(w, h, 0.02);
+                    const segment = new THREE.Mesh(segmentGeometry, numberMaterial);
+                    segment.position.set(x, height + 0.3 + y, depth / 2 + 0.12);
+                    carriage.add(segment);
+                };
+                
+                // Define number patterns using 7-segment display logic
+                switch(number) {
+                    case 1:
+                        createSegment(0.1, 0.1, 0.03, 0.15);
+                        createSegment(0.1, -0.1, 0.03, 0.15);
+                        break;
+                    case 2:
+                        createSegment(0, 0.15, 0.2, 0.03);    // top
+                        createSegment(0.1, 0.05, 0.03, 0.15);  // top right
+                        createSegment(0, 0, 0.2, 0.03);       // middle
+                        createSegment(-0.1, -0.05, 0.03, 0.15); // bottom left
+                        createSegment(0, -0.15, 0.2, 0.03);   // bottom
+                        break;
+                    case 3:
+                        createSegment(0, 0.15, 0.2, 0.03);    // top
+                        createSegment(0.1, 0.05, 0.03, 0.15);  // top right
+                        createSegment(0, 0, 0.15, 0.03);      // middle
+                        createSegment(0.1, -0.05, 0.03, 0.15); // bottom right
+                        createSegment(0, -0.15, 0.2, 0.03);   // bottom
+                        break;
+                    case 4:
+                        createSegment(-0.1, 0.05, 0.03, 0.15); // top left
+                        createSegment(0.1, 0.05, 0.03, 0.15);  // top right
+                        createSegment(0, 0, 0.2, 0.03);       // middle
+                        createSegment(0.1, -0.05, 0.03, 0.15); // bottom right
+                        break;
+                    case 5:
+                        createSegment(0, 0.15, 0.2, 0.03);    // top
+                        createSegment(-0.1, 0.05, 0.03, 0.15); // top left
+                        createSegment(0, 0, 0.2, 0.03);       // middle
+                        createSegment(0.1, -0.05, 0.03, 0.15); // bottom right
+                        createSegment(0, -0.15, 0.2, 0.03);   // bottom
+                        break;
+                    case 6:
+                        createSegment(0, 0.15, 0.2, 0.03);    // top
+                        createSegment(-0.1, 0.05, 0.03, 0.15); // top left
+                        createSegment(0, 0, 0.2, 0.03);       // middle
+                        createSegment(-0.1, -0.05, 0.03, 0.15); // bottom left
+                        createSegment(0.1, -0.05, 0.03, 0.15); // bottom right
+                        createSegment(0, -0.15, 0.2, 0.03);   // bottom
+                        break;
+                }
             }
 
             createShelf(rowIndex, width, depth) {
                 const shelf = new THREE.Group();
                 
                 // Shelf base
-                const shelfGeometry = new THREE.BoxGeometry(width - 0.4, 0.1, depth - 0.4);
+                const shelfGeometry = new THREE.BoxGeometry(width - 0.3, 0.08, depth - 0.3);
                 const shelfMaterial = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
                 const shelfBase = new THREE.Mesh(shelfGeometry, shelfMaterial);
                 shelfBase.castShadow = true;
@@ -374,14 +487,14 @@
                 // Add storage items
                 const itemCount = 4;
                 for (let i = 0; i < itemCount; i++) {
-                    const itemGeometry = new THREE.BoxGeometry(0.5, 0.4, 0.3);
+                    const itemGeometry = new THREE.BoxGeometry(0.35, 0.3, 0.25);
                     const itemMaterial = new THREE.MeshLambertMaterial({ 
                         color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6) 
                     });
                     const item = new THREE.Mesh(itemGeometry, itemMaterial);
-                    item.position.x = -1 + (i * 0.7);
-                    item.position.y = 0.25;
-                    item.position.z = (Math.random() - 0.5) * 0.8;
+                    item.position.x = -0.6 + (i * 0.4);
+                    item.position.y = 0.19;
+                    item.position.z = (Math.random() - 0.5) * 0.6;
                     item.castShadow = true;
                     shelf.add(item);
                 }
@@ -390,25 +503,17 @@
             }
 
             createFrontGlass() {
-                // Create a front access area indicator - positioned at the front of the carousel
-                const frontAreaGeometry = new THREE.BoxGeometry(8, 0.3, 0.2);
+                // Front access indicator bar
+                const frontAreaGeometry = new THREE.BoxGeometry(12, 0.3, 0.2);
                 const frontAreaMaterial = new THREE.MeshLambertMaterial({ 
-                    color: 0x3498db,
+                    color: 0x5dade2,
                     transparent: true,
                     opacity: 0.8
                 });
                 const frontArea = new THREE.Mesh(frontAreaGeometry, frontAreaMaterial);
-                frontArea.position.y = 8;
+                frontArea.position.y = 9;
                 frontArea.position.z = 7;
-                this.scene.add(frontArea); // Add to scene, not carousel, so it doesn't rotate
-                
-                // Add "FRONT ACCESS" text indicator
-                const textGeometry = new THREE.BoxGeometry(3, 0.3, 0.1);
-                const textMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
-                const textIndicator = new THREE.Mesh(textGeometry, textMaterial);
-                textIndicator.position.y = 8.5;
-                textIndicator.position.z = 7.2;
-                this.scene.add(textIndicator); // Add to scene, not carousel
+                this.scene.add(frontArea);
             }
 
             rotateCarousel(direction) {
@@ -416,28 +521,23 @@
                 
                 this.isRotating = true;
                 
-                // For rectangular carousel, we rotate by 60 degrees (360/6)
                 const angleStep = (Math.PI * 2) / this.carriageCount;
                 const targetRotation = this.carousel.rotation.y + (direction * angleStep);
                 
-                // Update position
                 this.currentPosition = (this.currentPosition + direction + this.carriageCount) % this.carriageCount;
                 document.getElementById('currentPos').textContent = this.currentPosition + 1;
                 
-                // Disable buttons during rotation
                 document.getElementById('prevBtn').disabled = true;
                 document.getElementById('nextBtn').disabled = true;
                 
-                // Animate rotation
                 const startRotation = this.carousel.rotation.y;
                 const startTime = Date.now();
-                const duration = 1200; // 1.2 seconds for smoother rotation
+                const duration = 1000;
                 
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / duration, 1);
                     
-                    // Smooth easing function
                     const easeInOut = progress < 0.5 
                         ? 2 * progress * progress 
                         : -1 + (4 - 2 * progress) * progress;
@@ -450,7 +550,6 @@
                         this.carousel.rotation.y = targetRotation;
                         this.isRotating = false;
                         
-                        // Re-enable buttons
                         document.getElementById('prevBtn').disabled = false;
                         document.getElementById('nextBtn').disabled = false;
                     }
@@ -461,16 +560,15 @@
 
             setupControls() {
                 document.getElementById('prevBtn').addEventListener('click', () => {
-                    this.rotateCarousel(-1); // Counter-clockwise
+                    this.rotateCarousel(-1);
                 });
                 
                 document.getElementById('nextBtn').addEventListener('click', () => {
-                    this.rotateCarousel(1); // Clockwise
+                    this.rotateCarousel(1);
                 });
                 
                 document.getElementById('resetBtn').addEventListener('click', () => {
-                    this.camera.position.set(0, 8, 20);
-                    this.camera.lookAt(0, 0, 0);
+                    this.resetCameraPosition();
                 });
             }
 
@@ -483,6 +581,9 @@
                 this.camera.aspect = window.innerWidth / window.innerHeight;
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
+                
+                // Adjust camera position for new aspect ratio
+                this.resetCameraPosition();
             }
         }
 
